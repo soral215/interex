@@ -98,8 +98,9 @@
 | Frontend | React 19, TypeScript |
 | Build Tool | Vite |
 | Drag & Drop | @dnd-kit/core, @dnd-kit/sortable |
+| Backend | Supabase (PostgreSQL) |
 | Styling | CSS (Custom Properties) |
-| State | React useState/useMemo |
+| State | React Custom Hooks |
 
 ## 🚀 시작하기
 
@@ -115,6 +116,26 @@ npm run dev
 # 프로덕션 빌드
 npm run build
 ```
+
+### Supabase 설정 (선택사항)
+
+> **참고:** Supabase 없이도 로컬 모드로 동작합니다.
+
+1. **Supabase 프로젝트 생성**
+   - https://supabase.com 에서 새 프로젝트 생성
+
+2. **테이블 생성**
+   - SQL Editor에서 `supabase-schema.sql` 파일 실행
+
+3. **환경 변수 설정**
+   - 프로젝트 루트에 `.env` 파일 생성:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+4. **RLS 정책 설정** (필요시)
+   - Supabase 대시보드에서 Row Level Security 활성화
 
 ### 스크립트
 

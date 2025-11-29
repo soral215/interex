@@ -1,16 +1,59 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { Applicant, Stage, RegistrationType, StageInfo } from '../types';
 import { initialApplicants } from '../data';
 import { arrayMove } from '@dnd-kit/sortable';
+import { applicantsApi, isSupabaseConfigured } from '../api';
 
 export function useApplicants(stages: StageInfo[]) {
   const [applicants, setApplicants] = useState<Applicant[]>(initialApplicants);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const deleteApplicant = useCallback((id: string) => {
-    setApplicants((prev) => prev.filter((a) => a.id !== id));
+  // 초기 데이터 로드
+  useEffect(() => {
+    const loadApplicants = async () => {
+      if (!isSupabaseConfigured) return;
+      
+      setIsLoading(true);
+      try {
+        const data = await applicantsApi.getAll();
+        setApplicants(data);
+      } catch (error) {
+        console.error('Failed to load applicants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadApplicants();
   }, []);
 
-  const addApplicant = useCallback((data: {
+  // 실시간 구독
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const subscription = applicantsApi.subscribe((newApplicants) => {
+      setApplicants(newApplicants);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const deleteApplicant = useCallback(async (id: string) => {
+    // 낙관적 업데이트
+    setApplicants((prev) => prev.filter((a) => a.id !== id));
+    
+    // API 호출
+    const success = await applicantsApi.delete(id);
+    if (!success && isSupabaseConfigured) {
+      // 실패 시 롤백
+      const data = await applicantsApi.getAll();
+      setApplicants(data);
+    }
+  }, []);
+
+  const addApplicant = useCallback(async (data: {
     name: string;
     registrationType: RegistrationType;
     stage: Stage;
@@ -18,7 +61,8 @@ export function useApplicants(stages: StageInfo[]) {
     const now = new Date();
     const dateStr = `${now.getFullYear()}. ${String(now.getMonth() + 1).padStart(2, '0')}. ${String(now.getDate()).padStart(2, '0')}`;
 
-    const newApplicant: Applicant = {
+    // 로컬용 새 지원자
+    const localApplicant: Applicant = {
       id: `NEW${Date.now()}`,
       name: data.name,
       stage: data.stage,
@@ -27,19 +71,39 @@ export function useApplicants(stages: StageInfo[]) {
       evaluationProgress: { current: 0, total: 1 },
     };
 
-    setApplicants((prev) => [newApplicant, ...prev]);
+    // 낙관적 업데이트
+    setApplicants((prev) => [localApplicant, ...prev]);
+
+    // API 호출
+    if (isSupabaseConfigured) {
+      const created = await applicantsApi.create(data);
+      if (created) {
+        // 서버에서 생성된 데이터로 교체
+        setApplicants((prev) => 
+          prev.map((a) => a.id === localApplicant.id ? created : a)
+        );
+      }
+    }
   }, []);
 
-  const moveApplicant = useCallback((id: string, newStage: Stage) => {
+  const moveApplicant = useCallback(async (id: string, newStage: Stage) => {
+    // 낙관적 업데이트
     setApplicants((prev) =>
       prev.map((a) => (a.id === id ? { ...a, stage: newStage } : a))
     );
+
+    // API 호출
+    await applicantsApi.update(id, { stage: newStage });
   }, []);
 
-  const moveMultipleApplicants = useCallback((ids: Set<string>, newStage: Stage) => {
+  const moveMultipleApplicants = useCallback(async (ids: Set<string>, newStage: Stage) => {
+    // 낙관적 업데이트
     setApplicants((prev) =>
       prev.map((a) => (ids.has(a.id) ? { ...a, stage: newStage } : a))
     );
+
+    // API 호출
+    await applicantsApi.updateStage(Array.from(ids), newStage);
   }, []);
 
   const reorderApplicants = useCallback((
@@ -68,6 +132,15 @@ export function useApplicants(stages: StageInfo[]) {
         }
       });
 
+      // API 호출 (비동기)
+      if (isSupabaseConfigured) {
+        const updates = reorderedStageApplicants.map((a, index) => ({
+          id: a.id,
+          position: index,
+        }));
+        applicantsApi.updatePositions(updates);
+      }
+
       return newApplicants;
     });
   }, [stages]);
@@ -83,6 +156,7 @@ export function useApplicants(stages: StageInfo[]) {
   return {
     applicants,
     setApplicants,
+    isLoading,
     deleteApplicant,
     addApplicant,
     moveApplicant,
@@ -92,4 +166,3 @@ export function useApplicants(stages: StageInfo[]) {
     getApplicantById,
   };
 }
-

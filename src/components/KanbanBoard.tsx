@@ -8,14 +8,14 @@ import {
   closestCenter,
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core';
-import type { Applicant, Stage, StageInfo } from '../types';
-import { DEFAULT_STAGES } from '../types';
+import type { Applicant, Stage } from '../types';
 import { Column } from './Column';
 import { AddApplicantModal } from './AddApplicantModal';
 import { AddColumnModal } from './AddColumnModal';
 import { Dashboard } from './Dashboard';
 import {
   useApplicants,
+  useStages,
   useFilter,
   useSort,
   useMultiSelect,
@@ -35,8 +35,15 @@ import {
 } from './icons';
 
 export function KanbanBoard() {
-  // 컬럼 상태
-  const [stages, setStages] = useState<StageInfo[]>(DEFAULT_STAGES);
+  // 컬럼 상태 (커스텀 훅)
+  const {
+    stages,
+    addColumn,
+    deleteColumn,
+    renameColumn,
+    getStageTitle,
+  } = useStages();
+  
   const [isAddColumnModalOpen, setIsAddColumnModalOpen] = useState(false);
 
   // 커스텀 훅 사용
@@ -219,46 +226,22 @@ export function KanbanBoard() {
     setAddModalStage(null);
   };
 
-  const getStageTitle = (stage: Stage): string => {
-    const stageInfo = stages.find((s) => s.id === stage);
-    return stageInfo?.title || '';
-  };
-
   // 컬럼 핸들러
   const handleAddColumn = (data: { title: string; color: string }) => {
-    const newStage: StageInfo = {
-      id: `custom_${Date.now()}`,
-      title: data.title,
-      color: data.color,
-    };
-    setStages((prev) => {
-      const hiredIndex = prev.findIndex((s) => s.id === 'hired');
-      if (hiredIndex === -1) {
-        return [...prev, newStage];
-      }
-      const newStages = [...prev];
-      newStages.splice(hiredIndex, 0, newStage);
-      return newStages;
-    });
+    addColumn(data);
   };
 
-  const handleDeleteColumn = (stageId: Stage) => {
-    if (stageId === 'hired') {
-      alert('입사 확정 컬럼은 삭제할 수 없습니다.');
-      return;
-    }
+  const handleDeleteColumn = async (stageId: Stage) => {
     const hasApplicants = applicants.some((a) => a.stage === stageId);
     if (hasApplicants) {
       alert('해당 컬럼에 지원자가 있습니다. 지원자를 먼저 이동시켜 주세요.');
       return;
     }
-    setStages((prev) => prev.filter((s) => s.id !== stageId));
+    await deleteColumn(stageId);
   };
 
   const handleRenameColumn = (stageId: Stage, newTitle: string) => {
-    setStages((prev) =>
-      prev.map((s) => (s.id === stageId ? { ...s, title: newTitle } : s))
-    );
+    renameColumn(stageId, newTitle);
   };
 
   return (
