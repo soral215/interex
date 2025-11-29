@@ -40,6 +40,14 @@ export function useApplicants(stages: StageInfo[]) {
     };
   }, []);
 
+  // 롤백 헬퍼 함수
+  const rollbackToServer = useCallback(async () => {
+    if (isSupabaseConfigured) {
+      const data = await applicantsApi.getAll();
+      setApplicants(data);
+    }
+  }, []);
+
   const deleteApplicant = useCallback(async (id: string) => {
     // 낙관적 업데이트
     setApplicants((prev) => prev.filter((a) => a.id !== id));
@@ -48,10 +56,9 @@ export function useApplicants(stages: StageInfo[]) {
     const success = await applicantsApi.delete(id);
     if (!success && isSupabaseConfigured) {
       // 실패 시 롤백
-      const data = await applicantsApi.getAll();
-      setApplicants(data);
+      await rollbackToServer();
     }
-  }, []);
+  }, [rollbackToServer]);
 
   const addApplicant = useCallback(async (data: {
     name: string;
@@ -82,9 +89,12 @@ export function useApplicants(stages: StageInfo[]) {
         setApplicants((prev) => 
           prev.map((a) => a.id === localApplicant.id ? created : a)
         );
+      } else {
+        // 실패 시 롤백
+        await rollbackToServer();
       }
     }
-  }, []);
+  }, [rollbackToServer]);
 
   const moveApplicant = useCallback(async (id: string, newStage: Stage) => {
     // 낙관적 업데이트
@@ -93,8 +103,12 @@ export function useApplicants(stages: StageInfo[]) {
     );
 
     // API 호출
-    await applicantsApi.update(id, { stage: newStage });
-  }, []);
+    const success = await applicantsApi.update(id, { stage: newStage });
+    if (!success && isSupabaseConfigured) {
+      // 실패 시 롤백
+      await rollbackToServer();
+    }
+  }, [rollbackToServer]);
 
   const moveMultipleApplicants = useCallback(async (ids: Set<string>, newStage: Stage) => {
     // 낙관적 업데이트
@@ -103,47 +117,57 @@ export function useApplicants(stages: StageInfo[]) {
     );
 
     // API 호출
-    await applicantsApi.updateStage(Array.from(ids), newStage);
-  }, []);
+    const success = await applicantsApi.updateStage(Array.from(ids), newStage);
+    if (!success && isSupabaseConfigured) {
+      // 실패 시 롤백
+      await rollbackToServer();
+    }
+  }, [rollbackToServer]);
 
-  const reorderApplicants = useCallback((
+  const reorderApplicants = useCallback(async (
     activeId: string,
     overId: string,
     currentStage: Stage
   ) => {
-    setApplicants((prev) => {
-      const stageApplicants = prev.filter((a) => a.stage === currentStage);
-      const otherApplicants = prev.filter((a) => a.stage !== currentStage);
+    // 이전 상태 저장 (롤백용)
+    const previousApplicants = applicants;
 
-      const oldIndex = stageApplicants.findIndex((a) => a.id === activeId);
-      const newIndex = stageApplicants.findIndex((a) => a.id === overId);
+    const stageApplicants = applicants.filter((a) => a.stage === currentStage);
+    const otherApplicants = applicants.filter((a) => a.stage !== currentStage);
 
-      if (oldIndex === -1 || newIndex === -1) return prev;
+    const oldIndex = stageApplicants.findIndex((a) => a.id === activeId);
+    const newIndex = stageApplicants.findIndex((a) => a.id === overId);
 
-      const reorderedStageApplicants = arrayMove(stageApplicants, oldIndex, newIndex);
+    if (oldIndex === -1 || newIndex === -1) return;
 
-      // 전체 배열을 재구성 (순서 유지)
-      const newApplicants: Applicant[] = [];
-      stages.forEach((stage) => {
-        if (stage.id === currentStage) {
-          newApplicants.push(...reorderedStageApplicants);
-        } else {
-          newApplicants.push(...otherApplicants.filter((a) => a.stage === stage.id));
-        }
-      });
+    const reorderedStageApplicants = arrayMove(stageApplicants, oldIndex, newIndex);
 
-      // API 호출 (비동기)
-      if (isSupabaseConfigured) {
-        const updates = reorderedStageApplicants.map((a, index) => ({
-          id: a.id,
-          position: index,
-        }));
-        applicantsApi.updatePositions(updates);
+    // 전체 배열을 재구성 (순서 유지)
+    const newApplicants: Applicant[] = [];
+    stages.forEach((stage) => {
+      if (stage.id === currentStage) {
+        newApplicants.push(...reorderedStageApplicants);
+      } else {
+        newApplicants.push(...otherApplicants.filter((a) => a.stage === stage.id));
       }
-
-      return newApplicants;
     });
-  }, [stages]);
+
+    // 낙관적 업데이트
+    setApplicants(newApplicants);
+
+    // API 호출
+    if (isSupabaseConfigured) {
+      const updates = reorderedStageApplicants.map((a, index) => ({
+        id: a.id,
+        position: index,
+      }));
+      const success = await applicantsApi.updatePositions(updates);
+      if (!success) {
+        // 실패 시 롤백
+        setApplicants(previousApplicants);
+      }
+    }
+  }, [applicants, stages]);
 
   const getApplicantsByStage = useCallback((stage: Stage): Applicant[] => {
     return applicants.filter((a) => a.stage === stage);
