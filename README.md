@@ -1,73 +1,161 @@
-# React + TypeScript + Vite
+# Interex - 채용 지원자 관리 칸반보드
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> AI 기반 통합 플랫폼 Interex의 채용 관리 시스템
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-19.1-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 📋 프로젝트 소개
 
-## React Compiler
+채용 지원자를 단계별로 관리할 수 있는 칸반보드 형태의 웹 애플리케이션입니다.
+직관적인 드래그앤드롭 인터페이스와 다양한 필터/정렬 기능을 제공합니다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## ✅ 필수 요구사항 구현
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. 보드 화면 구성
+- ✅ 여러 개의 전형 단계 컬럼으로 구성
+- ✅ 각 컬럼에 지원자 카드 표시
+- ✅ 지원자 카드에 이름/ID 표시
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 2. 드래그앤드롭 (DnD)
+- ✅ 지원자 카드를 드래그앤드롭으로 다른 단계로 이동
+- ✅ 이동 시 지원자의 단계 속성 변경
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 3. 스크롤
+- ✅ 컬럼 내부 세로 스크롤 지원
+- ✅ 10명 이상의 지원자가 있어도 UI 정상 동작
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 4. 삭제 버튼
+- ✅ 지원자 카드에 삭제 버튼 (더보기 메뉴 내 위치)
+- ✅ 삭제 버튼 클릭 시 보드에서 지원자 제거
+
+### 5. 지원자 상세 + 이력서 업로드
+- ✅ 지원자 카드 클릭 시 인터엑스 채용 사이트로 이동
+
+---
+
+## ✨ 추가 구현 기능
+
+### 🎯 향상된 칸반보드
+| 기능 | 설명 |
+|------|------|
+| **7단계 채용 파이프라인** | 지원 → 스크린콜 → 코딩테스트 → 1차 인터뷰 → 2차 인터뷰 → 처우협의 → 입사확정 |
+| **동적 컬럼 관리** | 컬럼 추가/삭제/이름 수정 가능 |
+| **입사확정 컬럼 고정** | 항상 맨 오른쪽에 위치, 삭제 불가 |
+| **컬럼 내 순서 변경** | 같은 단계 내에서 드래그로 순서 조정 |
+
+### 🖱️ 다중 선택 드래그앤드롭
+| 기능 | 설명 |
+|------|------|
+| **다중 선택 모드** | 여러 지원자를 체크박스로 선택 |
+| **일괄 이동** | 선택한 지원자들을 한 번에 다른 단계로 이동 |
+| **선택 해제** | 한 번에 모든 선택 해제 |
+
+### 🔍 필터링 & 검색
+| 기능 | 설명 |
+|------|------|
+| **평가 상태 필터** | 전체 / 평가 중 / 완료 / 미시작 |
+| **이름/ID 검색** | 실시간 검색 및 하이라이트 |
+| **시각적 피드백** | 매칭된 지원자 강조, 비매칭 흐리게 표시 |
+
+### 📊 정렬 기능
+| 기능 | 설명 |
+|------|------|
+| **정렬 기준** | 이름 / 지원일 / 평가 진행률 |
+| **정렬 순서** | 오름차순 / 내림차순 토글 |
+| **정렬 모드** | 활성화 시 드래그앤드롭 비활성화 |
+
+### 📈 대시보드 (토글 가능)
+| 기능 | 설명 |
+|------|------|
+| **주요 지표** | 전체 지원자, 입사 확정, 진행 중, 합격률 |
+| **채용 파이프라인** | 단계별 인원 시각화 |
+| **등록 유형 분포** | 직접등록/공고지원 도넛 차트 |
+| **평가 진행 현황** | 완료/진행중/미시작 막대 차트 |
+| **단계별 분포** | 모든 단계 인원 막대 차트 |
+
+### 👤 향상된 지원자 카드
+| 기능 | 설명 |
+|------|------|
+| **상세 정보 표시** | 등록 유형 배지, 지원일, 평가 진행률 |
+| **액션 메뉴** | 비공개 전환, 서류 다운로드, 메일/문자, 평가 배정, 합격/불합격 처리 |
+
+### ➕ 지원자/컬럼 추가
+| 기능 | 설명 |
+|------|------|
+| **지원자 추가** | 각 컬럼 헤더 또는 툴바에서 추가 |
+| **컬럼 추가** | 새 채용 단계 추가 (제목, 색상 설정) |
+
+---
+
+## 🛠️ 기술 스택
+
+| 분류 | 기술 |
+|------|------|
+| Frontend | React 19, TypeScript |
+| Build Tool | Vite |
+| Drag & Drop | @dnd-kit/core, @dnd-kit/sortable |
+| Styling | CSS (Custom Properties) |
+| State | React useState/useMemo |
+
+## 🚀 시작하기
+
+### 설치
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 서버 실행
+npm run dev
+
+# 프로덕션 빌드
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 스크립트
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| 명령어 | 설명 |
+|--------|------|
+| `npm run dev` | 개발 서버 실행 (http://localhost:5173) |
+| `npm run build` | 프로덕션 빌드 |
+| `npm run preview` | 빌드 결과 미리보기 |
+| `npm run lint` | ESLint 실행 |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 📁 프로젝트 구조
+
 ```
+src/
+├── components/
+│   ├── KanbanBoard.tsx    # 메인 칸반보드 컴포넌트
+│   ├── Column.tsx         # 컬럼 컴포넌트
+│   ├── ApplicantCard.tsx  # 지원자 카드 컴포넌트
+│   ├── Dashboard.tsx      # 대시보드 컴포넌트
+│   ├── AddApplicantModal.tsx  # 지원자 추가 모달
+│   └── AddColumnModal.tsx     # 컬럼 추가 모달
+├── types.ts               # TypeScript 타입 정의
+├── data.ts                # 초기 샘플 데이터
+├── App.tsx                # 앱 엔트리
+├── App.css                # 전역 스타일
+└── main.tsx               # React 엔트리
+```
+
+## 🔮 향후 개선 사항
+
+- [ ] 백엔드 API 연동
+- [ ] 실시간 데이터 동기화
+- [ ] 지원자 상세 페이지
+- [ ] 이력서 업로드/다운로드
+- [ ] 이메일/문자 발송 기능
+- [ ] 사용자 인증
+
+## 📄 라이선스
+
+MIT License
+
+---
+
+Made with ❤️ by Interex Team
